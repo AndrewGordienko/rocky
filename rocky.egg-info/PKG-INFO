@@ -1,0 +1,7 @@
+Metadata-Version: 2.1
+Name: rocky
+Version: 0.1.0
+Summary: F1 track visualization and geometry toolkit
+Author: Andrew Gordienko
+Requires-Python: >=3.9
+Description-Content-Type: text/markdown
