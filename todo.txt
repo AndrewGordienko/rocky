@@ -1,0 +1,21 @@
+adding car visualization
+- around track
+- magnifying lense
+
+random race course
+
+overtaking
+
+pit stop strategy
+
+tire degradation
+
+car models?
+
+racing simulator
+
+rl?
+
+steering wheel buttons
+
+random race course
