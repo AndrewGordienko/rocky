@@ -1,5 +1,5 @@
 import numpy as np
-from rocky.visualizer import show_track
+import rocky as ry
 
 coords = np.load("tracks/albert_park_circuit.npy")
-show_track(coords)
+ry.show_racing_line(coords)
