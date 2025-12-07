@@ -2,7 +2,7 @@ adding car visualization
 - around track
 - magnifying lense
 
-random race course
+random race course [x]
 
 overtaking
 
@@ -19,3 +19,5 @@ rl?
 steering wheel buttons
 
 random race course
+
+qualifying tires
