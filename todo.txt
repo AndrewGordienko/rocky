@@ -1,10 +1,12 @@
 adding car visualization
-- around track
-- magnifying lense
-
+- around track [x]
+- magnifying lense [x]
 random race course [x]
+- multiple cars [x]
 
 overtaking
+- need car models for this
+- individual models
 
 pit stop strategy
 
@@ -13,11 +15,10 @@ tire degradation
 car models?
 
 racing simulator
+- website?
 
 rl?
 
 steering wheel buttons
 
-random race course
-
-qualifying tires
+qualifying tire strategy
