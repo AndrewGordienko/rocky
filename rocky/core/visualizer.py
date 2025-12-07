@@ -6,6 +6,9 @@ from matplotlib.collections import LineCollection
 from matplotlib.animation import FuncAnimation
 from matplotlib.patches import Polygon, Rectangle
 
+# Import global toggle
+import rocky as ry
+
 from ..core.geometry import compute_walls, compute_tangent_normals
 from ..core.racing_line import compute_racing_line_with_speed
 from ..util.config import (
@@ -52,6 +55,10 @@ def _prepare_track_figure(coords, main_rect=(0.05, 0.05, 0.90, 0.90)):
     return fig, ax, left, right, outline
 
 
+# ---------------------------------------------------------
+# Simple public functions
+# ---------------------------------------------------------
+
 def show_track(coords):
     fig, ax, _, _, _ = _prepare_track_figure(coords)
     ax.set_title("Track", color="white")
@@ -71,7 +78,7 @@ def show_racing_line(coords):
 
 
 # ---------------------------------------------------------
-# PUBLIC API (unchanged)
+# PUBLIC API
 # ---------------------------------------------------------
 
 def show_car_on_track(coords, n=1, magnifier=True):
@@ -79,7 +86,7 @@ def show_car_on_track(coords, n=1, magnifier=True):
 
 
 # ---------------------------------------------------------
-# SINGLE CLEAN IMPLEMENTATION FOR 1..N CARS
+# UNIFIED CAR ANIMATION (1..N CARS)
 # ---------------------------------------------------------
 
 def _show_cars(coords, n_cars=1, magnifier=True):
@@ -92,9 +99,17 @@ def _show_cars(coords, n_cars=1, magnifier=True):
     racing, speeds, _, _ = compute_racing_line_with_speed(coords)
     tang, norms = compute_tangent_normals(racing)
 
-    seg = np.stack([racing, np.roll(racing, -1, axis=0)], axis=1)
-    ax.add_collection(LineCollection(seg, array=speeds,
-                                     cmap="viridis", linewidth=2.0))
+    # ---------------------------------------------------------
+    # Optional racing line (controlled by global toggle)
+    # ---------------------------------------------------------
+
+    if ry.show_racing_line:
+        seg = np.stack([racing, np.roll(racing, -1, axis=0)], axis=1)
+        ax.add_collection(LineCollection(
+            seg, array=speeds, cmap="viridis", linewidth=2.0
+        ))
+    else:
+        seg = None
 
     # ---------------------------------------------------------
     # Cars + their moving rectangles
@@ -127,7 +142,6 @@ def _show_cars(coords, n_cars=1, magnifier=True):
     zoom_cars = []
 
     if magnifier:
-        # Vertical stacking of zoom windows
         zoom_positions = np.linspace(0.65, 0.15, n_cars)
 
         for i in range(n_cars):
@@ -141,13 +155,16 @@ def _show_cars(coords, n_cars=1, magnifier=True):
                 s.set_color("white")
                 s.set_linewidth(0.7)
 
-            # Background track and racing line
+            # Background track
             axz.fill(outline[:,0], outline[:,1], color="#3c3c3c")
             axz.plot(left[:,0],  left[:,1],  color="white", linewidth=0.7)
             axz.plot(right[:,0], right[:,1], color="white", linewidth=0.7)
-            axz.add_collection(LineCollection(
-                seg, array=speeds, cmap="viridis", linewidth=1.2
-            ))
+
+            # Optional racing line inside zoom
+            if ry.show_racing_line and seg is not None:
+                axz.add_collection(LineCollection(
+                    seg, array=speeds, cmap="viridis", linewidth=1.2
+                ))
 
             zp = Polygon([[0,0],[0,0],[0,0]],
                          closed=True,
@@ -163,10 +180,7 @@ def _show_cars(coords, n_cars=1, magnifier=True):
     # ---------------------------------------------------------
 
     N = len(racing)
-
-    # Stagger start positions for multi-car setups
     s_pos = np.linspace(0, 0.05 * N, n_cars)
-
     BASE_INDEX_STEP = 1.0
 
     # ---------------------------------------------------------
@@ -175,7 +189,6 @@ def _show_cars(coords, n_cars=1, magnifier=True):
 
     def update(frame):
         for i in range(n_cars):
-
             idx = int(s_pos[i]) % N
             pos = racing[idx]
             d = tang[idx]
@@ -187,23 +200,19 @@ def _show_cars(coords, n_cars=1, magnifier=True):
                 pos - d * CAR_LENGTH * 0.4 - n * CAR_WIDTH,
             ]
 
-            # Update main-track car
             car_polys[i].set_xy(tri)
 
-            # Update moving rectangle
+            # Moving rectangle
             mag_rects[i].set_xy((pos[0] - MAG_WIDTH/2,
                                  pos[1] - MAG_HEIGHT/2))
 
             if magnifier:
-                # Zoom car
                 zoom_cars[i].set_xy(tri)
-
                 cx, cy = pos
                 axz = zoom_axes[i]
                 axz.set_xlim(cx - MAG_WIDTH/2, cx + MAG_WIDTH/2)
                 axz.set_ylim(cy - MAG_HEIGHT/2, cy + MAG_HEIGHT/2)
 
-            # Speed-based progress
             v_norm = max(speeds[idx] / speeds.max(), 0.02)
             s_pos[i] = (s_pos[i] + v_norm * BASE_INDEX_STEP) % N
 

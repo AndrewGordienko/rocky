@@ -8,4 +8,6 @@ ry.show_car_on_track(coords)
 """
 
 coords, name = ry.load_random_track()
+ry.show_racing_line = False
 ry.show_car_on_track(coords)
+

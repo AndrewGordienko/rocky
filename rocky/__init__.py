@@ -23,3 +23,5 @@ __all__ = [
     "compute_speed_profile",
     "compute_racing_line_with_speed",
 ]
+
+show_racing_line = False
