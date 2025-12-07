@@ -77,19 +77,19 @@ def show_racing_line(coords):
     plt.show()
 
 
-# ---------------------------------------------------------
-# PUBLIC API
-# ---------------------------------------------------------
-
-def show_car_on_track(coords, n=1, magnifier=True):
-    return _show_cars(coords, n_cars=n, magnifier=magnifier)
+def show_car_on_track(coords, car_models=None, magnifier=True):
+    return _show_cars(coords, car_models=car_models, magnifier=magnifier)
 
 
-# ---------------------------------------------------------
-# UNIFIED CAR ANIMATION (1..N CARS)
-# ---------------------------------------------------------
+def _show_cars(coords, car_models=None, magnifier=True):
 
-def _show_cars(coords, n_cars=1, magnifier=True):
+    # Number of cars is determined by how many models the user passed in
+    if car_models is None:
+        n_cars = 1
+        from rocky import CarModel
+        car_models = [CarModel()]
+    else:
+        n_cars = len(car_models)
 
     fig, ax, left, right, outline = _prepare_track_figure(
         coords, main_rect=(0.05, 0.05, 0.55, 0.90)
@@ -100,7 +100,7 @@ def _show_cars(coords, n_cars=1, magnifier=True):
     tang, norms = compute_tangent_normals(racing)
 
     # ---------------------------------------------------------
-    # Optional racing line (controlled by global toggle)
+    # Optional racing line
     # ---------------------------------------------------------
 
     if ry.show_racing_line:
@@ -155,12 +155,10 @@ def _show_cars(coords, n_cars=1, magnifier=True):
                 s.set_color("white")
                 s.set_linewidth(0.7)
 
-            # Background track
             axz.fill(outline[:,0], outline[:,1], color="#3c3c3c")
             axz.plot(left[:,0],  left[:,1],  color="white", linewidth=0.7)
             axz.plot(right[:,0], right[:,1], color="white", linewidth=0.7)
 
-            # Optional racing line inside zoom
             if ry.show_racing_line and seg is not None:
                 axz.add_collection(LineCollection(
                     seg, array=speeds, cmap="viridis", linewidth=1.2
@@ -176,23 +174,65 @@ def _show_cars(coords, n_cars=1, magnifier=True):
             zoom_cars.append(zp)
 
     # ---------------------------------------------------------
-    # Animation state
+    # Physics state per car
     # ---------------------------------------------------------
 
     N = len(racing)
+
+    # Start cars staggered on the first 5% of the track
     s_pos = np.linspace(0, 0.05 * N, n_cars)
-    BASE_INDEX_STEP = 1.0
+
+    # Per-car velocities
+    velocities = np.zeros(n_cars)
+
+    # Simulation timestep
+    dt = 0.15  # tunable (larger = faster movement)
+    INDEX_SPEED_SCALE = 0.05
 
     # ---------------------------------------------------------
-    # Animation update
+    # Animation update (PHYSICS INCLUDED)
     # ---------------------------------------------------------
 
     def update(frame):
         for i in range(n_cars):
+            model = car_models[i]
+
             idx = int(s_pos[i]) % N
             pos = racing[idx]
             d = tang[idx]
             n = norms[idx]
+
+            # -------------------------------------------------
+            # 1. Determine the target speed from racing line
+            # -------------------------------------------------
+            target_speed = speeds[idx] * model.speed_scale
+
+            # Grip effect (reduces achievable speed in tighter curves)
+            grip_offset = model.grip * 0.5
+
+            target_speed = max(1.0, target_speed - grip_offset)
+
+            # -------------------------------------------------
+            # 2. Update velocity with accel/brake physics
+            # -------------------------------------------------
+
+            if velocities[i] < target_speed:
+                dv = model.accel
+            else:
+                dv = -model.brake
+
+            velocities[i] += dv * dt
+            velocities[i] = max(0, min(velocities[i], target_speed + grip_offset))
+
+            # -------------------------------------------------
+            # 3. Update track position
+            # -------------------------------------------------
+
+            s_pos[i] = (s_pos[i] + velocities[i] * dt * INDEX_SPEED_SCALE) % N
+
+            # -------------------------------------------------
+            # 4. Draw car triangle
+            # -------------------------------------------------
 
             tri = [
                 pos + d * CAR_LENGTH * 0.6,
@@ -206,15 +246,13 @@ def _show_cars(coords, n_cars=1, magnifier=True):
             mag_rects[i].set_xy((pos[0] - MAG_WIDTH/2,
                                  pos[1] - MAG_HEIGHT/2))
 
+            # Magnifier update
             if magnifier:
                 zoom_cars[i].set_xy(tri)
                 cx, cy = pos
                 axz = zoom_axes[i]
                 axz.set_xlim(cx - MAG_WIDTH/2, cx + MAG_WIDTH/2)
                 axz.set_ylim(cy - MAG_HEIGHT/2, cy + MAG_HEIGHT/2)
-
-            v_norm = max(speeds[idx] / speeds.max(), 0.02)
-            s_pos[i] = (s_pos[i] + v_norm * BASE_INDEX_STEP) % N
 
         return []
 

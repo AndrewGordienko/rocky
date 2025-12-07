@@ -3,10 +3,13 @@ adding car visualization
 - magnifying lense [x]
 random race course [x]
 - multiple cars [x]
+readme and docs [x]
+line drawing [x]
 
 overtaking
 - need car models for this
-- individual models
+    - objectify the cars [x]
+- individual models [x]
 
 pit stop strategy
 
@@ -22,3 +25,5 @@ rl?
 steering wheel buttons
 
 qualifying tire strategy
+
+car starting position

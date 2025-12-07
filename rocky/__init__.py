@@ -10,6 +10,7 @@ from .core.visualizer import (
     show_car_on_track
 )
 from .util.random_track import load_random_track
+from .core.car import CarModel
 
 __all__ = [
     "show_track",
@@ -22,6 +23,7 @@ __all__ = [
     "compute_racing_line",
     "compute_speed_profile",
     "compute_racing_line_with_speed",
+    "CarModel",
 ]
 
 show_racing_line = False
